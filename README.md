@@ -14,7 +14,6 @@ A modern React admin panel built with Vite, TypeScript, and Ant Design.
 - **Axios** - HTTP client
 
 ## Getting Started
-
 ### Install Dependencies
 
 ```bash
