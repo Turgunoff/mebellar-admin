@@ -12,7 +12,7 @@ export interface Shop {
   phone?: string;
   latitude?: number;
   longitude?: number;
-  region_id?: string;
+  region_id?: number;
   working_hours?: any;
   is_active: boolean;
   is_verified: boolean;
@@ -27,7 +27,7 @@ export interface CreateShopRequest {
   description?: { uz?: string; ru?: string; en?: string };
   address?: { uz?: string; ru?: string; en?: string };
   phone?: string;
-  region_id?: string;
+  region_id?: number;
   latitude?: number;
   longitude?: number;
   working_hours?: any;
@@ -40,7 +40,7 @@ export interface UpdateShopRequest {
   description?: { uz?: string; ru?: string; en?: string };
   address?: { uz?: string; ru?: string; en?: string };
   phone?: string;
-  region_id?: string;
+  region_id?: number;
   latitude?: number;
   longitude?: number;
   logo_url?: string;

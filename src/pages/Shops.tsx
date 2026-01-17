@@ -155,7 +155,7 @@ const Shops = () => {
           description,
           address,
           phone: values.phone,
-          region_id: values.region_id,
+          region_id: values.region_id ? (typeof values.region_id === 'number' ? values.region_id : parseInt(values.region_id)) : undefined,
           latitude: values.latitude,
           longitude: values.longitude,
           is_main: values.is_main,
@@ -170,7 +170,7 @@ const Shops = () => {
           description,
           address,
           phone: values.phone,
-          region_id: values.region_id,
+          region_id: values.region_id ? (typeof values.region_id === 'number' ? values.region_id : parseInt(values.region_id)) : undefined,
           latitude: values.latitude,
           longitude: values.longitude,
           is_main: values.is_main,
@@ -250,7 +250,7 @@ const Shops = () => {
       title: 'Location',
       key: 'location',
       render: (_: any, record: Shop) => {
-        const region = regions.find((r) => r.id.toString() === record.region_id);
+        const region = regions.find((r) => r.id === record.region_id);
         return region ? region.name : '-';
       },
     },
@@ -353,7 +353,7 @@ const Shops = () => {
             allowClear
             style={{ width: 200 }}
             value={filterRegionId}
-            onChange={(value) => setFilterRegionId(value)}
+            onChange={(value) => setFilterRegionId(value?.toString())}
           >
             {regions.map((region) => (
               <Select.Option key={region.id} value={region.id.toString()}>
@@ -501,7 +501,7 @@ const Shops = () => {
           <Form.Item name="region_id" label="Region">
             <Select placeholder="Select region" allowClear>
               {regions.map((region) => (
-                <Select.Option key={region.id} value={region.id.toString()}>
+                <Select.Option key={region.id} value={region.id}>
                   {region.name}
                 </Select.Option>
               ))}
