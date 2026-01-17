@@ -3,7 +3,11 @@ import api from './api';
 export interface Category {
   id: string;
   parent_id?: string;
-  name: string;
+  name: {
+    uz: string;
+    ru: string;
+    en: string;
+  };
   slug?: string;
   icon_url?: string;
   is_active?: boolean;
@@ -40,14 +44,15 @@ export const getCategoryById = async (id: string): Promise<CategoryResponse> => 
 
 // Create category with file upload
 export const createCategory = async (data: {
-  name: string;
+  name: { uz: string; ru: string; en: string };
   parent_id?: string;
   icon?: File | null;
   is_active?: boolean;
   sort_order?: number;
 }): Promise<CategoryResponse> => {
   const formData = new FormData();
-  formData.append('name', data.name);
+  // Send name as JSON string
+  formData.append('name_json', JSON.stringify(data.name));
   if (data.parent_id) {
     formData.append('parent_id', data.parent_id);
   }
@@ -73,7 +78,7 @@ export const createCategory = async (data: {
 export const updateCategory = async (
   id: string,
   data: {
-    name?: string;
+    name?: { uz: string; ru: string; en: string };
     icon?: File | null;
     is_active?: boolean;
     sort_order?: number;
@@ -81,7 +86,8 @@ export const updateCategory = async (
 ): Promise<CategoryResponse> => {
   const formData = new FormData();
   if (data.name) {
-    formData.append('name', data.name);
+    // Send name as JSON string
+    formData.append('name_json', JSON.stringify(data.name));
   }
   if (data.icon) {
     formData.append('icon', data.icon);

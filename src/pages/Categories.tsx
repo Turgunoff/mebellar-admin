@@ -13,6 +13,7 @@ import {
   Image,
   Upload,
   Tag,
+  Tabs,
 } from 'antd';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
@@ -58,7 +59,9 @@ const Categories = () => {
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
     form.setFieldsValue({
-      name: category.name,
+      name_uz: category.name?.uz || '',
+      name_ru: category.name?.ru || '',
+      name_en: category.name?.en || '',
       parent_id: category.parent_id,
       is_active: category.is_active !== undefined ? category.is_active : true,
       sort_order: category.sort_order !== undefined ? category.sort_order : 0,
@@ -97,6 +100,24 @@ const Categories = () => {
     try {
       const values = await form.validateFields();
       
+      // Combine name fields into object
+      const nameObj = {
+        uz: values.name_uz || '',
+        ru: values.name_ru || '',
+        en: values.name_en || '',
+      };
+
+      // Validate that at least one name is provided
+      if (!nameObj.uz && !nameObj.ru && !nameObj.en) {
+        message.error('Please enter category name in at least one language');
+        return;
+      }
+
+      // Ensure all three languages have values (use uz as fallback if empty)
+      if (!nameObj.uz) nameObj.uz = nameObj.en || nameObj.ru || '';
+      if (!nameObj.ru) nameObj.ru = nameObj.uz;
+      if (!nameObj.en) nameObj.en = nameObj.uz;
+      
       // Get the file from fileList (if a new file was selected)
       const file = fileList.length > 0 && fileList[0].originFileObj 
         ? fileList[0].originFileObj 
@@ -104,7 +125,7 @@ const Categories = () => {
 
       if (editingCategory) {
         await updateCategory(editingCategory.id, {
-          name: values.name,
+          name: nameObj,
           icon: file,
           is_active: values.is_active,
           sort_order: values.sort_order,
@@ -112,7 +133,7 @@ const Categories = () => {
         message.success('Category updated successfully');
       } else {
         await createCategory({
-          name: values.name,
+          name: nameObj,
           parent_id: values.parent_id,
           icon: file,
           is_active: values.is_active !== undefined ? values.is_active : true,
@@ -149,6 +170,18 @@ const Categories = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
+      render: (name: { uz: string; ru: string; en: string }) => {
+        if (!name) return '-';
+        // Display all three languages
+        return (
+          <div>
+            <div><strong>UZ:</strong> {name.uz || '-'}</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              <strong>RU:</strong> {name.ru || '-'} | <strong>EN:</strong> {name.en || '-'}
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: 'Icon/Image',
@@ -178,7 +211,7 @@ const Categories = () => {
       render: (parentId: string) => {
         if (!parentId) return '-';
         const parent = categories.find((c) => c.id === parentId);
-        return parent ? parent.name : parentId.slice(0, 8);
+        return parent ? (parent.name?.uz || parent.name?.en || '-') : parentId.slice(0, 8);
       },
     },
     {
@@ -264,11 +297,53 @@ const Categories = () => {
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="name"
-            label="Category Name"
-            rules={[{ required: true, message: 'Please enter category name' }]}
+            label="Category Name (Multi-language)"
+            required
           >
-            <Input placeholder="Enter category name" />
+            <Tabs
+              defaultActiveKey="uz"
+              items={[
+                {
+                  key: 'uz',
+                  label: '🇺🇿 UZ',
+                  children: (
+                    <Form.Item
+                      name="name_uz"
+                      rules={[{ required: true, message: 'Please enter Uzbek name' }]}
+                      noStyle
+                    >
+                      <Input placeholder="Kategoriya nomi (O'zbekcha)" />
+                    </Form.Item>
+                  ),
+                },
+                {
+                  key: 'ru',
+                  label: '🇷🇺 RU',
+                  children: (
+                    <Form.Item
+                      name="name_ru"
+                      rules={[{ required: true, message: 'Please enter Russian name' }]}
+                      noStyle
+                    >
+                      <Input placeholder="Название категории (Русский)" />
+                    </Form.Item>
+                  ),
+                },
+                {
+                  key: 'en',
+                  label: '🇬🇧 EN',
+                  children: (
+                    <Form.Item
+                      name="name_en"
+                      rules={[{ required: true, message: 'Please enter English name' }]}
+                      noStyle
+                    >
+                      <Input placeholder="Category Name (English)" />
+                    </Form.Item>
+                  ),
+                },
+              ]}
+            />
           </Form.Item>
 
           <Form.Item name="parent_id" label="Parent Category">
