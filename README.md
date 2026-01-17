@@ -14,6 +14,15 @@ A modern React admin panel built with Vite, TypeScript, and Ant Design.
 - **Axios** - HTTP client
 
 ## Getting Started
+
+### Environment Setup
+
+Create a `.env` file in the root directory:
+
+```bash
+VITE_API_URL=https://api.mebellar-olami.uz
+```
+
 ### Install Dependencies
 
 ```bash

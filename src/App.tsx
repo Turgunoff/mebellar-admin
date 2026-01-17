@@ -1,14 +1,80 @@
-import { Button } from 'antd'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ConfigProvider } from 'antd';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import MainLayout from './layouts/MainLayout';
+import { useAuthStore } from './store/authStore';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
+
+  // Check if token exists in localStorage (for initial load)
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('user_role');
+
+  if (!token || userRole !== 'admin') {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAuthenticated || !isAdmin) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Public Route Component (redirect to dashboard if already logged in)
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('user_role');
+
+  if (token && userRole === 'admin' && isAuthenticated && isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 function App() {
   return (
-    <div style={{ padding: '50px', textAlign: 'center' }}>
-      <h1>Hello Admin Panel</h1>
-      <Button type="primary" size="large">
-        Ant Design is Working!
-      </Button>
-    </div>
-  )
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#667eea',
+        },
+      }}
+    >
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            {/* Add more protected routes here */}
+          </Route>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ConfigProvider>
+  );
 }
 
-export default App
+export default App;
