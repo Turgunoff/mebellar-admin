@@ -231,7 +231,9 @@ const Products = () => {
       key: 'category_id',
       render: (categoryId: string) => {
         const category = categories.find((c) => c.id === categoryId);
-        return category ? category.name : '-';
+        if (!category) return '-';
+        // Display Uzbek name, fallback to English or first available
+        return category.name?.uz || category.name?.en || category.name?.ru || '-';
       },
     },
     {
@@ -349,7 +351,7 @@ const Products = () => {
             <Select placeholder="Select category" allowClear>
               {categories.map((cat) => (
                 <Select.Option key={cat.id} value={cat.id}>
-                  {cat.name}
+                  {cat.name?.uz || cat.name?.en || cat.name?.ru || 'Unnamed Category'}
                 </Select.Option>
               ))}
             </Select>
