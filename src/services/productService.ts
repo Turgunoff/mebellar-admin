@@ -4,8 +4,16 @@ export interface Product {
   id: string;
   shop_id?: string;
   category_id?: string;
-  name: string;
-  description: string;
+  name: {
+    uz: string;
+    ru?: string;
+    en?: string;
+  };
+  description: {
+    uz: string;
+    ru?: string;
+    en?: string;
+  };
   price: number;
   discount_price?: number;
   images: string[];

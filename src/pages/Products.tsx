@@ -78,8 +78,8 @@ const Products = () => {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     form.setFieldsValue({
-      name: product.name,
-      description: product.description,
+      name: product.name?.uz || '',
+      description: product.description?.uz || '',
       price: product.price,
       discount_price: product.discount_price,
       category_id: product.category_id,
@@ -203,6 +203,13 @@ const Products = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
+      render: (name: Product['name']) => {
+        if (typeof name === 'string') {
+          // Backward compatibility: if name is still a string
+          return name;
+        }
+        return name?.uz || '-';
+      },
     },
     {
       title: 'Price',
@@ -315,14 +322,15 @@ const Products = () => {
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
-            label="Product Name"
-            rules={[{ required: true, message: 'Please enter product name' }]}
+            label="Product Name (Uzbek)"
+            rules={[{ required: true, message: 'Please enter product name in Uzbek' }]}
+            extra="AI will automatically translate to Russian and English"
           >
-            <Input placeholder="Enter product name" />
+            <Input placeholder="Enter product name in Uzbek" />
           </Form.Item>
 
-          <Form.Item name="description" label="Description">
-            <TextArea rows={4} placeholder="Enter product description" />
+          <Form.Item name="description" label="Description (Uzbek)" extra="AI will automatically translate to Russian and English">
+            <TextArea rows={4} placeholder="Enter product description in Uzbek" />
           </Form.Item>
 
           <Form.Item
