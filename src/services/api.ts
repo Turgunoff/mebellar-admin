@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api.mebellar-olami.uz',
+  baseURL: import.meta.env.VITE_API_URL || 'https://admin.mebellar-olami.uz',
   headers: {
     'Content-Type': 'application/json',
   },
