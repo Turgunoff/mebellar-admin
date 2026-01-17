@@ -6,6 +6,8 @@ import Products from './pages/Products';
 import Categories from './pages/Categories';
 import Orders from './pages/Orders';
 import Users from './pages/Users';
+import Sellers from './pages/Sellers';
+import Shops from './pages/Shops';
 import MainLayout from './layouts/MainLayout';
 import { useAuthStore } from './store/authStore';
 
@@ -76,6 +78,8 @@ function App() {
             <Route path="categories" element={<Categories />} />
             <Route path="orders" element={<Orders />} />
             <Route path="users" element={<Users />} />
+            <Route path="sellers" element={<Sellers />} />
+            <Route path="shops" element={<Shops />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

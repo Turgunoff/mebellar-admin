@@ -9,6 +9,8 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShopOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -34,6 +36,16 @@ const MainLayout = () => {
       key: '/users',
       icon: <UserOutlined />,
       label: 'Users',
+    },
+    {
+      key: '/sellers',
+      icon: <TeamOutlined />,
+      label: 'Sellers',
+    },
+    {
+      key: '/shops',
+      icon: <ShopOutlined />,
+      label: 'Shops',
     },
     {
       key: '/categories',
