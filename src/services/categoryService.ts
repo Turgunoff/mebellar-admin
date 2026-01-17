@@ -4,7 +4,10 @@ export interface Category {
   id: string;
   parent_id?: string;
   name: string;
+  slug?: string;
   icon_url?: string;
+  is_active?: boolean;
+  sort_order?: number;
   product_count?: number;
   sub_categories?: Category[];
 }
@@ -41,6 +44,8 @@ export const createCategory = async (data: {
   name: string;
   parent_id?: string;
   icon?: File | null;
+  is_active?: boolean;
+  sort_order?: number;
 }): Promise<CategoryResponse> => {
   const formData = new FormData();
   formData.append('name', data.name);
@@ -49,6 +54,12 @@ export const createCategory = async (data: {
   }
   if (data.icon) {
     formData.append('icon', data.icon);
+  }
+  if (data.is_active !== undefined) {
+    formData.append('is_active', data.is_active.toString());
+  }
+  if (data.sort_order !== undefined) {
+    formData.append('sort_order', data.sort_order.toString());
   }
 
   const response = await api.post<CategoryResponse>('/admin/categories', formData, {
@@ -65,6 +76,8 @@ export const updateCategory = async (
   data: {
     name?: string;
     icon?: File | null;
+    is_active?: boolean;
+    sort_order?: number;
   }
 ): Promise<CategoryResponse> => {
   const formData = new FormData();
@@ -73,6 +86,12 @@ export const updateCategory = async (
   }
   if (data.icon) {
     formData.append('icon', data.icon);
+  }
+  if (data.is_active !== undefined) {
+    formData.append('is_active', data.is_active.toString());
+  }
+  if (data.sort_order !== undefined) {
+    formData.append('sort_order', data.sort_order.toString());
   }
 
   const response = await api.put<CategoryResponse>(`/admin/categories/${id}`, formData, {

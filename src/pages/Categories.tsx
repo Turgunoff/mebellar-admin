@@ -5,11 +5,14 @@ import {
   Modal,
   Form,
   Input,
+  InputNumber,
+  Switch,
   message,
   Popconfirm,
   Space,
   Image,
   Upload,
+  Tag,
 } from 'antd';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
@@ -57,6 +60,8 @@ const Categories = () => {
     form.setFieldsValue({
       name: category.name,
       parent_id: category.parent_id,
+      is_active: category.is_active !== undefined ? category.is_active : true,
+      sort_order: category.sort_order !== undefined ? category.sort_order : 0,
     });
     
     // Set existing image if available
@@ -101,6 +106,8 @@ const Categories = () => {
         await updateCategory(editingCategory.id, {
           name: values.name,
           icon: file,
+          is_active: values.is_active,
+          sort_order: values.sort_order,
         });
         message.success('Category updated successfully');
       } else {
@@ -108,6 +115,8 @@ const Categories = () => {
           name: values.name,
           parent_id: values.parent_id,
           icon: file,
+          is_active: values.is_active !== undefined ? values.is_active : true,
+          sort_order: values.sort_order !== undefined ? values.sort_order : 0,
         });
         message.success('Category created successfully');
       }
@@ -177,6 +186,25 @@ const Categories = () => {
       dataIndex: 'product_count',
       key: 'product_count',
       render: (count: number) => count || 0,
+    },
+    {
+      title: 'Active',
+      dataIndex: 'is_active',
+      key: 'is_active',
+      width: 100,
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'green' : 'red'}>
+          {isActive ? '✓ Active' : '✗ Inactive'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Sort Order',
+      dataIndex: 'sort_order',
+      key: 'sort_order',
+      width: 120,
+      sorter: (a: Category, b: Category) => (a.sort_order || 0) - (b.sort_order || 0),
+      render: (order: number) => order || 0,
     },
     {
       title: 'Actions',
@@ -289,6 +317,24 @@ const Categories = () => {
                 </div>
               )}
             </Upload>
+          </Form.Item>
+
+          <Form.Item
+            name="is_active"
+            label="Active Status"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+          </Form.Item>
+
+          <Form.Item
+            name="sort_order"
+            label="Sort Order"
+            initialValue={0}
+            tooltip="Lower numbers appear first. Default is 0."
+          >
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="Enter sort order" />
           </Form.Item>
         </Form>
       </Modal>
