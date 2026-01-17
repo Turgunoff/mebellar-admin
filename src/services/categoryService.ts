@@ -36,26 +36,50 @@ export const getCategoryById = async (id: string): Promise<CategoryResponse> => 
   return response.data;
 };
 
-// Create category (assuming endpoint exists or will be created)
+// Create category with file upload
 export const createCategory = async (data: {
   name: string;
   parent_id?: string;
-  icon_url?: string;
+  icon?: File | null;
 }): Promise<CategoryResponse> => {
-  const response = await api.post<CategoryResponse>('/categories', data);
+  const formData = new FormData();
+  formData.append('name', data.name);
+  if (data.parent_id) {
+    formData.append('parent_id', data.parent_id);
+  }
+  if (data.icon) {
+    formData.append('icon', data.icon);
+  }
+
+  const response = await api.post<CategoryResponse>('/admin/categories', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 
-// Update category
+// Update category with file upload
 export const updateCategory = async (
   id: string,
   data: {
     name?: string;
-    parent_id?: string;
-    icon_url?: string;
+    icon?: File | null;
   }
 ): Promise<CategoryResponse> => {
-  const response = await api.put<CategoryResponse>(`/categories/${id}`, data);
+  const formData = new FormData();
+  if (data.name) {
+    formData.append('name', data.name);
+  }
+  if (data.icon) {
+    formData.append('icon', data.icon);
+  }
+
+  const response = await api.put<CategoryResponse>(`/admin/categories/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 

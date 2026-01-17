@@ -9,8 +9,10 @@ import {
   Popconfirm,
   Space,
   Image,
+  Upload,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import type { UploadFile } from 'antd/es/upload/interface';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   getCategories,
   createCategory,
@@ -25,6 +27,7 @@ const Categories = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [form] = Form.useForm();
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
   useEffect(() => {
     fetchCategories();
@@ -45,6 +48,7 @@ const Categories = () => {
   const handleAdd = () => {
     setEditingCategory(null);
     form.resetFields();
+    setFileList([]);
     setModalVisible(true);
   };
 
@@ -53,8 +57,24 @@ const Categories = () => {
     form.setFieldsValue({
       name: category.name,
       parent_id: category.parent_id,
-      icon_url: category.icon_url,
     });
+    
+    // Set existing image if available
+    if (category.icon_url) {
+      const imageUrl = category.icon_url.startsWith('http') 
+        ? category.icon_url 
+        : `${import.meta.env.VITE_API_URL}${category.icon_url}`;
+      setFileList([
+        {
+          uid: '-1',
+          name: 'existing-image',
+          status: 'done',
+          url: imageUrl,
+        },
+      ]);
+    } else {
+      setFileList([]);
+    }
     setModalVisible(true);
   };
 
@@ -72,16 +92,29 @@ const Categories = () => {
     try {
       const values = await form.validateFields();
       
+      // Get the file from fileList (if a new file was selected)
+      const file = fileList.length > 0 && fileList[0].originFileObj 
+        ? fileList[0].originFileObj 
+        : null;
+
       if (editingCategory) {
-        await updateCategory(editingCategory.id, values);
+        await updateCategory(editingCategory.id, {
+          name: values.name,
+          icon: file,
+        });
         message.success('Category updated successfully');
       } else {
-        await createCategory(values);
+        await createCategory({
+          name: values.name,
+          parent_id: values.parent_id,
+          icon: file,
+        });
         message.success('Category created successfully');
       }
 
       setModalVisible(false);
       form.resetFields();
+      setFileList([]);
       fetchCategories();
     } catch (error: any) {
       if (error.errorFields) {
@@ -196,6 +229,7 @@ const Categories = () => {
         onCancel={() => {
           setModalVisible(false);
           form.resetFields();
+          setFileList([]);
         }}
         onOk={handleSubmit}
         okText={editingCategory ? 'Update' : 'Create'}
@@ -213,8 +247,48 @@ const Categories = () => {
             <Input placeholder="Enter parent category ID (optional)" />
           </Form.Item>
 
-          <Form.Item name="icon_url" label="Icon URL">
-            <Input placeholder="Enter icon/image URL" />
+          <Form.Item label="Category Icon">
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              beforeUpload={(file) => {
+                // Prevent auto upload
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  message.error('You can only upload image files!');
+                  return false;
+                }
+                const isLt2M = file.size / 1024 / 1024 < 2;
+                if (!isLt2M) {
+                  message.error('Image must be smaller than 2MB!');
+                  return false;
+                }
+                
+                // Add to fileList for preview
+                const newFile: UploadFile = {
+                  uid: file.uid,
+                  name: file.name,
+                  status: 'done',
+                  originFileObj: file,
+                  url: URL.createObjectURL(file),
+                };
+                setFileList([newFile]);
+                return false; // Prevent auto upload
+              }}
+              onRemove={() => {
+                setFileList([]);
+                return true;
+              }}
+              accept="image/jpeg,image/jpg,image/png"
+              maxCount={1}
+            >
+              {fileList.length < 1 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
           </Form.Item>
         </Form>
       </Modal>
