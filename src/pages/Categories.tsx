@@ -190,18 +190,38 @@ const Categories = () => {
       width: 100,
       render: (iconUrl: string) => {
         if (iconUrl) {
-          const imageUrl = iconUrl.startsWith('http') ? iconUrl : `${import.meta.env.VITE_API_URL}${iconUrl}`;
+          // If it starts with 'http', use as is; otherwise prepend API base URL
+          const imageUrl = iconUrl.startsWith('http') 
+            ? iconUrl 
+            : `https://api.mebellar-olami.uz${iconUrl}`;
           return (
             <Image
               width={50}
               height={50}
               src={imageUrl}
-              style={{ objectFit: 'cover', borderRadius: 4 }}
+              style={{ objectFit: 'contain', borderRadius: 4 }}
               fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RnG4W+FgYxN"
             />
           );
         }
-        return <div style={{ width: 50, height: 50, background: '#f0f0f0', borderRadius: 4 }} />;
+        // Fallback placeholder when icon_url is empty
+        return (
+          <div 
+            style={{ 
+              width: 50, 
+              height: 50, 
+              background: '#f0f0f0', 
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#999',
+              fontSize: '12px'
+            }}
+          >
+            No Icon
+          </div>
+        );
       },
     },
     {
