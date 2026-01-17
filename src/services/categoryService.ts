@@ -25,11 +25,10 @@ export interface CategoryResponse {
   category?: Category;
 }
 
-// Get all categories (flat or nested)
+// Get all categories (flat or nested) - Admin Panel uses admin endpoint to see all categories
 export const getCategories = async (flat: boolean = false): Promise<CategoriesResponse> => {
-  const response = await api.get<CategoriesResponse>(
-    `/categories${flat ? '?flat=true' : ''}`
-  );
+  // Admin panel uses admin endpoint to see ALL categories (including inactive)
+  const response = await api.get<CategoriesResponse>('/admin/categories/list');
   return response.data;
 };
 
