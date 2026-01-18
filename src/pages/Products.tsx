@@ -7,6 +7,7 @@ import {
   Input,
   InputNumber,
   Select,
+  Switch,
   Upload,
   message,
   Popconfirm,
@@ -14,6 +15,9 @@ import {
   Image,
   Tag,
   Checkbox,
+  Divider,
+  Spin,
+  Card,
 } from 'antd';
 import {
   PlusOutlined,
@@ -30,6 +34,11 @@ import {
   type Product,
 } from '../services/productService';
 import { getCategories, type Category } from '../services/categoryService';
+import {
+  getCategoryAttributes,
+  type CategoryAttribute,
+  getDefaultValue,
+} from '../services/categoryAttributeService';
 
 const { TextArea } = Input;
 
@@ -41,6 +50,11 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+
+  // Dynamic Specs State (Server-Driven UI)
+  const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
+  const [attributesLoading, setAttributesLoading] = useState(false);
+  const [dynamicSpecs, setDynamicSpecs] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchProducts();
@@ -68,14 +82,66 @@ const Products = () => {
     }
   };
 
+  // Fetch category attributes when category changes
+  const fetchCategoryAttributes = async (categoryId: string) => {
+    if (!categoryId) {
+      setCategoryAttributes([]);
+      setDynamicSpecs({});
+      return;
+    }
+
+    setAttributesLoading(true);
+    try {
+      const response = await getCategoryAttributes(categoryId);
+      const attrs = response.attributes || [];
+      setCategoryAttributes(attrs);
+
+      // Initialize dynamic specs with default values
+      const newSpecs: Record<string, any> = {};
+      attrs.forEach((attr) => {
+        // If editing and product has existing spec value, use it
+        if (editingProduct?.specs && editingProduct.specs[attr.key] !== undefined) {
+          const value = editingProduct.specs[attr.key];
+          if (attr.type === 'switch') {
+            newSpecs[attr.key] = value === true || value === 'true';
+          } else {
+            newSpecs[attr.key] = value;
+          }
+        } else {
+          newSpecs[attr.key] = getDefaultValue(attr.type);
+        }
+      });
+      setDynamicSpecs(newSpecs);
+    } catch (error: any) {
+      console.error('Failed to fetch category attributes:', error);
+      setCategoryAttributes([]);
+    } finally {
+      setAttributesLoading(false);
+    }
+  };
+
+  const handleCategoryChange = (categoryId: string) => {
+    form.setFieldValue('category_id', categoryId);
+    fetchCategoryAttributes(categoryId);
+  };
+
+  const handleDynamicSpecChange = (key: string, value: any) => {
+    setDynamicSpecs((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
   const handleAdd = () => {
     setEditingProduct(null);
     setFileList([]);
+    setCategoryAttributes([]);
+    setDynamicSpecs({});
     form.resetFields();
     setModalVisible(true);
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: Product) => {
     setEditingProduct(product);
     form.setFieldsValue({
       name: product.name?.uz || '',
@@ -86,6 +152,7 @@ const Products = () => {
       is_new: product.is_new,
       is_popular: product.is_popular,
     });
+    
     // Set existing images
     if (product.images && product.images.length > 0) {
       const existingFiles: UploadFile[] = product.images.map((img, index) => ({
@@ -98,6 +165,15 @@ const Products = () => {
     } else {
       setFileList([]);
     }
+
+    // Fetch category attributes if product has a category
+    if (product.category_id) {
+      await fetchCategoryAttributes(product.category_id);
+    } else {
+      setCategoryAttributes([]);
+      setDynamicSpecs({});
+    }
+
     setModalVisible(true);
   };
 
@@ -128,6 +204,19 @@ const Products = () => {
       formData.append('is_new', values.is_new ? 'true' : 'false');
       formData.append('is_popular', values.is_popular ? 'true' : 'false');
 
+      // Build specs from dynamic specs
+      const specsMap: Record<string, any> = {};
+      Object.entries(dynamicSpecs).forEach(([key, value]) => {
+        // Only include non-empty values
+        if (value !== '' && value !== null && value !== undefined && value !== false) {
+          specsMap[key] = value;
+        }
+      });
+      
+      if (Object.keys(specsMap).length > 0) {
+        formData.append('specs', JSON.stringify(specsMap));
+      }
+
       // Handle image uploads
       fileList.forEach((file) => {
         if (file.originFileObj) {
@@ -153,6 +242,8 @@ const Products = () => {
       setModalVisible(false);
       form.resetFields();
       setFileList([]);
+      setCategoryAttributes([]);
+      setDynamicSpecs({});
       fetchProducts();
     } catch (error: any) {
       if (error.errorFields) {
@@ -173,6 +264,84 @@ const Products = () => {
       currency: 'UZS',
       minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  // Render dynamic field based on attribute type
+  const renderDynamicField = (attr: CategoryAttribute) => {
+    const label = attr.label?.uz || attr.key;
+    const value = dynamicSpecs[attr.key];
+    const isRequired = attr.is_required;
+
+    switch (attr.type) {
+      case 'text':
+        return (
+          <Form.Item
+            key={attr.id}
+            label={label}
+            required={isRequired}
+          >
+            <Input
+              value={value || ''}
+              onChange={(e) => handleDynamicSpecChange(attr.key, e.target.value)}
+              placeholder={`Enter ${label}`}
+            />
+          </Form.Item>
+        );
+
+      case 'number':
+        return (
+          <Form.Item
+            key={attr.id}
+            label={label}
+            required={isRequired}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              value={value || ''}
+              onChange={(val) => handleDynamicSpecChange(attr.key, val)}
+              placeholder={`Enter ${label}`}
+            />
+          </Form.Item>
+        );
+
+      case 'dropdown':
+        return (
+          <Form.Item
+            key={attr.id}
+            label={label}
+            required={isRequired}
+          >
+            <Select
+              value={value || undefined}
+              onChange={(val) => handleDynamicSpecChange(attr.key, val)}
+              placeholder={`Select ${label}`}
+              allowClear
+            >
+              {attr.options?.map((opt) => (
+                <Select.Option key={opt.value} value={opt.value}>
+                  {opt.label?.uz || opt.value}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+        );
+
+      case 'switch':
+        return (
+          <Form.Item
+            key={attr.id}
+            label={label}
+          >
+            <Switch
+              checked={value === true}
+              onChange={(checked) => handleDynamicSpecChange(attr.key, checked)}
+            />
+          </Form.Item>
+        );
+
+      default:
+        return null;
+    }
   };
 
   const columns = [
@@ -244,11 +413,25 @@ const Products = () => {
       },
     },
     {
-      title: 'Stock',
-      key: 'stock',
-      render: (_: any, record: Product) => {
-        // Assuming stock is calculated from variants or is a separate field
-        return record.sold_count !== undefined ? `Sold: ${record.sold_count}` : '-';
+      title: 'Specs',
+      dataIndex: 'specs',
+      key: 'specs',
+      width: 150,
+      render: (specs: Record<string, any>) => {
+        if (!specs || Object.keys(specs).length === 0) return '-';
+        const entries = Object.entries(specs).slice(0, 2);
+        return (
+          <div style={{ fontSize: 12 }}>
+            {entries.map(([key, value]) => (
+              <div key={key}>
+                <strong>{key}:</strong> {String(value)}
+              </div>
+            ))}
+            {Object.keys(specs).length > 2 && (
+              <div style={{ color: '#999' }}>+{Object.keys(specs).length - 2} more</div>
+            )}
+          </div>
+        );
       },
     },
     {
@@ -290,6 +473,9 @@ const Products = () => {
     },
   ];
 
+  // Watch category_id to fetch attributes
+  const selectedCategoryId = Form.useWatch('category_id', form);
+
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
@@ -314,6 +500,8 @@ const Products = () => {
           setModalVisible(false);
           form.resetFields();
           setFileList([]);
+          setCategoryAttributes([]);
+          setDynamicSpecs({});
         }}
         onOk={handleSubmit}
         width={800}
@@ -356,7 +544,11 @@ const Products = () => {
           </Form.Item>
 
           <Form.Item name="category_id" label="Category">
-            <Select placeholder="Select category" allowClear>
+            <Select
+              placeholder="Select category"
+              allowClear
+              onChange={handleCategoryChange}
+            >
               {categories.map((cat) => (
                 <Select.Option key={cat.id} value={cat.id}>
                   {cat.name?.uz || cat.name?.en || cat.name?.ru || 'Unnamed Category'}
@@ -364,6 +556,22 @@ const Products = () => {
               ))}
             </Select>
           </Form.Item>
+
+          {/* Dynamic Specs Section - Server-Driven UI */}
+          {categoryAttributes.length > 0 && (
+            <>
+              <Divider orientation="left">Product Specifications</Divider>
+              {attributesLoading ? (
+                <div style={{ textAlign: 'center', padding: 20 }}>
+                  <Spin tip="Loading attributes..." />
+                </div>
+              ) : (
+                <Card size="small" style={{ marginBottom: 16 }}>
+                  {categoryAttributes.map((attr) => renderDynamicField(attr))}
+                </Card>
+              )}
+            </>
+          )}
 
           <Form.Item name="is_new" valuePropName="checked" label="Mark as New">
             <Checkbox>New Product</Checkbox>

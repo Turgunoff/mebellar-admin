@@ -7,6 +7,7 @@ import {
   Input,
   InputNumber,
   Switch,
+  Select,
   message,
   Popconfirm,
   Space,
@@ -14,9 +15,21 @@ import {
   Upload,
   Tag,
   Tabs,
+  Card,
+  Divider,
+  List,
+  Typography,
+  Tooltip,
 } from 'antd';
 import type { UploadFile } from 'antd/es/upload/interface';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UploadOutlined,
+  SettingOutlined,
+  MinusCircleOutlined,
+} from '@ant-design/icons';
 import {
   getCategories,
   createCategory,
@@ -24,6 +37,18 @@ import {
   deleteCategory,
   type Category,
 } from '../services/categoryService';
+import {
+  getCategoryAttributes,
+  createCategoryAttribute,
+  updateCategoryAttribute,
+  deleteCategoryAttribute,
+  type CategoryAttribute,
+  type AttributeOption,
+  type CreateAttributeRequest,
+  attributeTypeLabels,
+} from '../services/categoryAttributeService';
+
+const { Text } = Typography;
 
 const Categories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -32,6 +57,15 @@ const Categories = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+
+  // Attributes Management State
+  const [attributesModalVisible, setAttributesModalVisible] = useState(false);
+  const [selectedCategoryForAttributes, setSelectedCategoryForAttributes] = useState<Category | null>(null);
+  const [attributes, setAttributes] = useState<CategoryAttribute[]>([]);
+  const [attributesLoading, setAttributesLoading] = useState(false);
+  const [attributeForm] = Form.useForm();
+  const [editingAttribute, setEditingAttribute] = useState<CategoryAttribute | null>(null);
+  const [attributeFormVisible, setAttributeFormVisible] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -158,6 +192,143 @@ const Categories = () => {
     }
   };
 
+  // ============================================
+  // Attribute Management Functions
+  // ============================================
+
+  const handleManageAttributes = async (category: Category) => {
+    setSelectedCategoryForAttributes(category);
+    setAttributesModalVisible(true);
+    await fetchAttributes(category.id);
+  };
+
+  const fetchAttributes = async (categoryId: string) => {
+    setAttributesLoading(true);
+    try {
+      const response = await getCategoryAttributes(categoryId);
+      setAttributes(response.attributes || []);
+    } catch (error: any) {
+      message.error('Failed to fetch attributes: ' + (error.response?.data?.message || error.message));
+      setAttributes([]);
+    } finally {
+      setAttributesLoading(false);
+    }
+  };
+
+  const handleAddAttribute = () => {
+    setEditingAttribute(null);
+    attributeForm.resetFields();
+    attributeForm.setFieldsValue({
+      type: 'text',
+      is_required: false,
+      sort_order: attributes.length,
+      options: [],
+    });
+    setAttributeFormVisible(true);
+  };
+
+  const handleEditAttribute = (attr: CategoryAttribute) => {
+    setEditingAttribute(attr);
+    attributeForm.setFieldsValue({
+      key: attr.key,
+      type: attr.type,
+      label_uz: attr.label?.uz || '',
+      label_ru: attr.label?.ru || '',
+      label_en: attr.label?.en || '',
+      is_required: attr.is_required,
+      sort_order: attr.sort_order,
+      options: attr.options?.map(opt => ({
+        value: opt.value,
+        label_uz: opt.label?.uz || '',
+        label_ru: opt.label?.ru || '',
+        label_en: opt.label?.en || '',
+      })) || [],
+    });
+    setAttributeFormVisible(true);
+  };
+
+  const handleDeleteAttribute = async (attrId: string) => {
+    try {
+      await deleteCategoryAttribute(attrId);
+      message.success('Attribute deleted successfully');
+      if (selectedCategoryForAttributes) {
+        await fetchAttributes(selectedCategoryForAttributes.id);
+      }
+    } catch (error: any) {
+      message.error('Failed to delete attribute: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleAttributeSubmit = async () => {
+    try {
+      const values = await attributeForm.validateFields();
+      
+      const label = {
+        uz: values.label_uz || '',
+        ru: values.label_ru || values.label_uz || '',
+        en: values.label_en || values.label_uz || '',
+      };
+
+      // Build options for dropdown type
+      let options: AttributeOption[] | undefined;
+      if (values.type === 'dropdown' && values.options?.length > 0) {
+        options = values.options.map((opt: any) => ({
+          value: opt.value,
+          label: {
+            uz: opt.label_uz || opt.value,
+            ru: opt.label_ru || opt.label_uz || opt.value,
+            en: opt.label_en || opt.label_uz || opt.value,
+          },
+        }));
+      }
+
+      if (editingAttribute) {
+        // Update existing attribute
+        await updateCategoryAttribute(editingAttribute.id, {
+          key: values.key,
+          type: values.type,
+          label,
+          options,
+          is_required: values.is_required,
+          sort_order: values.sort_order,
+        });
+        message.success('Attribute updated successfully');
+      } else {
+        // Create new attribute
+        if (!selectedCategoryForAttributes) return;
+        
+        const data: CreateAttributeRequest = {
+          key: values.key,
+          type: values.type,
+          label,
+          options,
+          is_required: values.is_required || false,
+          sort_order: values.sort_order || 0,
+        };
+        
+        await createCategoryAttribute(selectedCategoryForAttributes.id, data);
+        message.success('Attribute created successfully');
+      }
+
+      setAttributeFormVisible(false);
+      attributeForm.resetFields();
+      setEditingAttribute(null);
+      
+      if (selectedCategoryForAttributes) {
+        await fetchAttributes(selectedCategoryForAttributes.id);
+      }
+    } catch (error: any) {
+      if (error.errorFields) {
+        return;
+      }
+      message.error(
+        `Failed to ${editingAttribute ? 'update' : 'create'} attribute: ${
+          error.response?.data?.message || error.message
+        }`
+      );
+    }
+  };
+
   const columns = [
     {
       title: 'ID',
@@ -255,16 +426,25 @@ const Categories = () => {
       title: 'Sort Order',
       dataIndex: 'sort_order',
       key: 'sort_order',
-      width: 120,
+      width: 100,
       sorter: (a: Category, b: Category) => (a.sort_order || 0) - (b.sort_order || 0),
       render: (order: number) => order || 0,
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 150,
+      width: 220,
       render: (_: any, record: Category) => (
         <Space>
+          <Tooltip title="Manage Attributes">
+            <Button
+              type="link"
+              icon={<SettingOutlined />}
+              onClick={() => handleManageAttributes(record)}
+            >
+              Attrs
+            </Button>
+          </Tooltip>
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -287,6 +467,9 @@ const Categories = () => {
     },
   ];
 
+  // Watch for type changes to show/hide options
+  const selectedType = Form.useWatch('type', attributeForm);
+
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
@@ -304,6 +487,7 @@ const Categories = () => {
         pagination={{ pageSize: 10 }}
       />
 
+      {/* Category Edit/Create Modal */}
       <Modal
         title={editingCategory ? 'Edit Category' : 'Add Category'}
         open={modalVisible}
@@ -325,7 +509,7 @@ const Categories = () => {
               items={[
                 {
                   key: 'uz',
-                  label: '🇺🇿 UZ',
+                  label: 'UZ',
                   children: (
                     <Form.Item
                       name="name_uz"
@@ -338,7 +522,7 @@ const Categories = () => {
                 },
                 {
                   key: 'ru',
-                  label: '🇷🇺 RU',
+                  label: 'RU',
                   children: (
                     <Form.Item
                       name="name_ru"
@@ -351,7 +535,7 @@ const Categories = () => {
                 },
                 {
                   key: 'en',
-                  label: '🇬🇧 EN',
+                  label: 'EN',
                   children: (
                     <Form.Item
                       name="name_en"
@@ -432,6 +616,199 @@ const Categories = () => {
             <InputNumber min={0} style={{ width: '100%' }} placeholder="Enter sort order" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Attributes Management Modal */}
+      <Modal
+        title={`Manage Attributes: ${selectedCategoryForAttributes?.name?.uz || 'Category'}`}
+        open={attributesModalVisible}
+        onCancel={() => {
+          setAttributesModalVisible(false);
+          setSelectedCategoryForAttributes(null);
+          setAttributes([]);
+          setAttributeFormVisible(false);
+          attributeForm.resetFields();
+        }}
+        footer={null}
+        width={800}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddAttribute}>
+            Add Attribute
+          </Button>
+        </div>
+
+        <List
+          loading={attributesLoading}
+          dataSource={attributes}
+          locale={{ emptyText: 'No attributes defined for this category' }}
+          renderItem={(attr) => (
+            <Card size="small" style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <Text strong>{attr.label?.uz || attr.key}</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Key: <code>{attr.key}</code> | Type: <Tag>{attributeTypeLabels[attr.type]}</Tag>
+                    {attr.is_required && <Tag color="red">Required</Tag>}
+                    <span style={{ marginLeft: 8 }}>Order: {attr.sort_order}</span>
+                  </Text>
+                  {attr.type === 'dropdown' && attr.options && (
+                    <div style={{ marginTop: 4 }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        Options: {attr.options.map(o => o.label?.uz || o.value).join(', ')}
+                      </Text>
+                    </div>
+                  )}
+                </div>
+                <Space>
+                  <Button
+                    type="link"
+                    icon={<EditOutlined />}
+                    onClick={() => handleEditAttribute(attr)}
+                  />
+                  <Popconfirm
+                    title="Delete this attribute?"
+                    onConfirm={() => handleDeleteAttribute(attr.id)}
+                    okText="Yes"
+                    cancelText="No"
+                  >
+                    <Button type="link" danger icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Space>
+              </div>
+            </Card>
+          )}
+        />
+
+        {/* Attribute Form Modal */}
+        <Modal
+          title={editingAttribute ? 'Edit Attribute' : 'Add Attribute'}
+          open={attributeFormVisible}
+          onCancel={() => {
+            setAttributeFormVisible(false);
+            attributeForm.resetFields();
+            setEditingAttribute(null);
+          }}
+          onOk={handleAttributeSubmit}
+          okText={editingAttribute ? 'Update' : 'Create'}
+          width={600}
+        >
+          <Form form={attributeForm} layout="vertical">
+            <Form.Item
+              name="key"
+              label="Key (JSON field name)"
+              rules={[
+                { required: true, message: 'Please enter a key' },
+                { pattern: /^[a-z_][a-z0-9_]*$/, message: 'Key must be lowercase with underscores only' },
+              ]}
+              tooltip="Used as the JSON key when storing product specs (e.g., 'mechanism', 'material')"
+            >
+              <Input placeholder="e.g., mechanism, material, color" />
+            </Form.Item>
+
+            <Form.Item
+              name="type"
+              label="Input Type"
+              rules={[{ required: true, message: 'Please select a type' }]}
+            >
+              <Select>
+                <Select.Option value="text">Text Input</Select.Option>
+                <Select.Option value="number">Number Input</Select.Option>
+                <Select.Option value="dropdown">Dropdown Select</Select.Option>
+                <Select.Option value="switch">Toggle Switch</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Divider orientation="left">Label (Multi-language)</Divider>
+
+            <Form.Item
+              name="label_uz"
+              label="Label (Uzbek)"
+              rules={[{ required: true, message: 'Please enter Uzbek label' }]}
+            >
+              <Input placeholder="e.g., Mexanizm" />
+            </Form.Item>
+
+            <Form.Item name="label_ru" label="Label (Russian)">
+              <Input placeholder="e.g., Механизм" />
+            </Form.Item>
+
+            <Form.Item name="label_en" label="Label (English)">
+              <Input placeholder="e.g., Mechanism" />
+            </Form.Item>
+
+            {/* Options for Dropdown type */}
+            {selectedType === 'dropdown' && (
+              <>
+                <Divider orientation="left">Dropdown Options</Divider>
+                <Form.List name="options">
+                  {(fields, { add, remove }) => (
+                    <>
+                      {fields.map(({ key, name, ...restField }) => (
+                        <Card key={key} size="small" style={{ marginBottom: 8 }}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'value']}
+                            rules={[{ required: true, message: 'Value required' }]}
+                            label="Value (stored)"
+                          >
+                            <Input placeholder="e.g., delfin" />
+                          </Form.Item>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'label_uz']}
+                            rules={[{ required: true, message: 'Label required' }]}
+                            label="Label UZ"
+                          >
+                            <Input placeholder="e.g., Delfin" />
+                          </Form.Item>
+                          <Form.Item {...restField} name={[name, 'label_ru']} label="Label RU">
+                            <Input placeholder="e.g., Дельфин" />
+                          </Form.Item>
+                          <Form.Item {...restField} name={[name, 'label_en']} label="Label EN">
+                            <Input placeholder="e.g., Dolphin" />
+                          </Form.Item>
+                          <Button
+                            type="link"
+                            danger
+                            icon={<MinusCircleOutlined />}
+                            onClick={() => remove(name)}
+                          >
+                            Remove Option
+                          </Button>
+                        </Card>
+                      ))}
+                      <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                        Add Option
+                      </Button>
+                    </>
+                  )}
+                </Form.List>
+              </>
+            )}
+
+            <Divider />
+
+            <Form.Item
+              name="is_required"
+              label="Required"
+              valuePropName="checked"
+              initialValue={false}
+            >
+              <Switch checkedChildren="Required" unCheckedChildren="Optional" />
+            </Form.Item>
+
+            <Form.Item
+              name="sort_order"
+              label="Sort Order"
+              initialValue={0}
+              tooltip="Lower numbers appear first"
+            >
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
+          </Form>
+        </Modal>
       </Modal>
     </div>
   );
