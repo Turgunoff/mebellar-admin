@@ -44,36 +44,38 @@ export interface OrderResponse {
   order?: Order;
 }
 
-// Get all orders (for admin - using seller endpoint)
+// Get all orders (for admin - using admin endpoint, no X-Shop-ID required)
 export const getOrders = async (params?: {
   page?: number;
   limit?: number;
   status?: string;
+  shop_id?: string;
 }): Promise<OrdersResponse> => {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.append('page', params.page.toString());
   if (params?.limit) queryParams.append('limit', params.limit.toString());
   if (params?.status) queryParams.append('status', params.status);
+  if (params?.shop_id) queryParams.append('shop_id', params.shop_id);
 
   const response = await api.get<OrdersResponse>(
-    `/seller/orders${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    `/admin/orders${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
   );
   return response.data;
 };
 
-// Get order by ID
+// Get order by ID (admin endpoint)
 export const getOrderById = async (id: string): Promise<OrderResponse> => {
-  const response = await api.get<OrderResponse>(`/seller/orders/${id}`);
+  const response = await api.get<OrderResponse>(`/admin/orders/${id}`);
   return response.data;
 };
 
-// Update order status
+// Update order status (admin endpoint)
 export const updateOrderStatus = async (
   id: string,
   status: string,
   sellerNote?: string
 ): Promise<OrderResponse> => {
-  const response = await api.put<OrderResponse>(`/seller/orders/${id}`, {
+  const response = await api.put<OrderResponse>(`/admin/orders/${id}/status`, {
     status,
     seller_note: sellerNote,
   });
