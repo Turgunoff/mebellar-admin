@@ -250,8 +250,22 @@ const Shops = () => {
       title: 'Location',
       key: 'location',
       render: (_: any, record: Shop) => {
+        // Use region_name from shop data (JSONB) if available, otherwise fallback to regions list
+        if (record.region_name?.uz) {
+          return record.region_name.uz;
+        }
+        if (record.region_name?.ru) {
+          return record.region_name.ru;
+        }
+        if (record.region_name?.en) {
+          return record.region_name.en;
+        }
+        // Fallback to regions list lookup
         const region = regions.find((r) => r.id === record.region_id);
-        return region ? region.name : '-';
+        if (region) {
+          return region.name_jsonb?.uz || region.name || '-';
+        }
+        return '-';
       },
     },
     {

@@ -13,6 +13,7 @@ export interface Shop {
   latitude?: number;
   longitude?: number;
   region_id?: number;
+  region_name?: { uz?: string; ru?: string; en?: string }; // Region name from JOIN (JSONB)
   working_hours?: any;
   is_active: boolean;
   is_verified: boolean;
