@@ -77,7 +77,7 @@ export const updateOrderStatus = async (
 ): Promise<OrderResponse> => {
   const response = await api.put<OrderResponse>(`/admin/orders/${id}/status`, {
     status,
-    seller_note: sellerNote,
+    note: sellerNote, // Backend expects 'note' field
   });
   return response.data;
 };
