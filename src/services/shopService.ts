@@ -69,6 +69,7 @@ export interface ShopResponse {
 export interface Region {
   id: number;
   name: string;
+  name_jsonb?: { uz?: string; ru?: string; en?: string };
   code?: string;
   is_active: boolean;
   ordering: number;
