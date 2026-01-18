@@ -8,6 +8,7 @@ import Orders from './pages/Orders';
 import Users from './pages/Users';
 import Sellers from './pages/Sellers';
 import Shops from './pages/Shops';
+import Regions from './pages/Regions';
 import MainLayout from './layouts/MainLayout';
 import { useAuthStore } from './store/authStore';
 
@@ -80,6 +81,7 @@ function App() {
             <Route path="users" element={<Users />} />
             <Route path="sellers" element={<Sellers />} />
             <Route path="shops" element={<Shops />} />
+            <Route path="regions" element={<Regions />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

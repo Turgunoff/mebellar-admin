@@ -11,6 +11,7 @@ import {
   MenuUnfoldOutlined,
   ShopOutlined,
   TeamOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -46,6 +47,11 @@ const MainLayout = () => {
       key: '/shops',
       icon: <ShopOutlined />,
       label: 'Shops',
+    },
+    {
+      key: '/regions',
+      icon: <EnvironmentOutlined />,
+      label: 'Regions',
     },
     {
       key: '/categories',
